@@ -1,22 +1,42 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    reactStrictMode: false,
-    images: {
-        remotePatterns: [
-            {
-                protocol: 'https',
-                hostname: '**',
-                port: '',
-            },
-        ]
-    },
+    output: 'standalone',
     experimental: {
         serverActions: {
             bodySizeLimit: '5mb',
-            serverActions: true,
-            allowedOrigins: ['localhost:3000/','https://anybet.site'],
+            allowedOrigins: ['localhost:3000', '192.168.1.121:3000'],
         },
+    },
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
+    server: {
+        host: '0.0.0.0', // Явно указываем хост
+        port: 3000,
     },
 };
 
 export default nextConfig;
+
+/** @type {import('next').NextConfig} */
+// const nextConfig = {
+//     reactStrictMode: false,
+//     images: {
+//         remotePatterns: [
+//             {
+//                 protocol: 'https',
+//                 hostname: '**',
+//                 port: '',
+//             },
+//         ]
+//     },
+//     experimental: {
+//         serverActions: {
+//             bodySizeLimit: '5mb',
+//             serverActions: true,
+//             allowedOrigins: ['localhost:3000/','https://anybet.site'],
+//         },
+//     },
+// };
+//
+// export default nextConfig;
