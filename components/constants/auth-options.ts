@@ -31,7 +31,7 @@ export const authOptions: AuthOptions = {
                 email: { label: 'Email', type: 'text' },
                 password: { label: 'Password', type: 'password' },
             },
-            async authorize(credentials) {
+            async authorize(credentials, req) {
                 if (!credentials) {
                     return null;
                 }
@@ -48,6 +48,22 @@ export const authOptions: AuthOptions = {
                     return null;
                 }
 
+                console.log('Authorize request URL:', req?.url); // Логирование для отладки
+
+                // Обход проверки пароля для запросов с /verify-email
+                if (req?.url?.includes('/verify-email')) {
+                    if (!findUser.emailVerified) {
+                        throw new Error('Email не подтвержден.');
+                    }
+                    return {
+                        id: findUser.id,
+                        email: findUser.email,
+                        name: findUser.fullName,
+                        role: findUser.role,
+                    };
+                }
+
+                // Стандартная проверка для обычного входа
                 if (!findUser.emailVerified) {
                     throw new Error('Пожалуйста, подтвердите ваш email перед входом.');
                 }
