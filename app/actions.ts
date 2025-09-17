@@ -7,6 +7,39 @@ import * as z from 'zod'
 import { revalidatePath } from 'next/cache';
 import nodemailer from "nodemailer";
 
+export async function updateUserInfo(body: Prisma.UserUpdateInput) {
+    try {
+        const currentUser = await getUserSession();
+
+        if (!currentUser) {
+            throw new Error('Пользователь не найден');
+        }
+
+        const findUser = await prisma.user.findFirst({
+            where: {
+                id: Number(currentUser.id),
+            },
+        });
+
+        if (!findUser) {
+            throw new Error('Пользователь не найден в базе данных');
+        }
+
+        await prisma.user.update({
+            where: {
+                id: Number(currentUser.id),
+            },
+            data: {
+                fullName: body.fullName,
+                password: body.password ? hashSync(body.password as string, 10) : findUser.password,
+            },
+        });
+        revalidatePath('/profile');
+    } catch (err) {
+        throw err;
+    }
+} // Функция для обновления информации о пользователе
+
 // Импортируем crypto через require для серверного окружения
 let crypto;
 try {
@@ -58,7 +91,7 @@ export async function registerUser(body: Prisma.UserCreateInput) {
             verificationToken: newUser.verificationToken,
             verificationTokenExpires: newUser.verificationTokenExpires,
             emailVerified: newUser.emailVerified,
-        }); // Логирование для отладки
+        });
 
         // Настройка и отправка письма
         const transporter = nodemailer.createTransport({
@@ -73,7 +106,7 @@ export async function registerUser(body: Prisma.UserCreateInput) {
             from: `"Heroes3" <${process.env.EMAIL_USER}>`,
             to: body.email,
             subject: 'Подтверждение регистрации',
-            text: `Перейдите по ссылке для подтверждения вашего email: ${process.env.NEXTAUTH_URL}/verify-email?token=${verificationToken}`,
+            text: `Перейдите по ссылке для подтверждения вашего email: ${process.env.NEXTAUTH_URL}/api/auth/verify-email?token=${verificationToken}`,
         };
 
         await transporter.sendMail(mailOptions, (error, info) => {

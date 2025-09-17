@@ -30,8 +30,9 @@ export const authOptions: AuthOptions = {
             credentials: {
                 email: { label: 'Email', type: 'text' },
                 password: { label: 'Password', type: 'password' },
+                isVerifyEmail: { label: 'IsVerifyEmail', type: 'hidden' }, // Новый флаг
             },
-            async authorize(credentials, req) {
+            async authorize(credentials) {
                 if (!credentials) {
                     return null;
                 }
@@ -48,10 +49,10 @@ export const authOptions: AuthOptions = {
                     return null;
                 }
 
-                console.log('Authorize request URL:', req?.url); // Логирование для отладки
+                console.log('Authorize credentials:', { email: credentials.email, isVerifyEmail: credentials.isVerifyEmail }); // Логирование для отладки
 
-                // Обход проверки пароля для запросов с /verify-email
-                if (req?.url?.includes('/verify-email')) {
+                // Обход проверки пароля для входа после подтверждения email
+                if (credentials.isVerifyEmail === 'true') {
                     if (!findUser.emailVerified) {
                         throw new Error('Email не подтвержден.');
                     }

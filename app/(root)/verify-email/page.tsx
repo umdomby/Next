@@ -1,58 +1,102 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import toast from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function VerifyEmailPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const email = searchParams.get('email');
+    const token = searchParams.get('token');
+    const [isVerifying, setIsVerifying] = useState(!!token);
 
     useEffect(() => {
-        async function handleSignIn() {
-            if (!email) {
-                toast.error('Email не предоставлен', {
-                    icon: '❌',
-                    duration: 3000,
-                    style: {
-                        background: '#fee2e2',
-                        color: '#b91c1c',
-                        border: '1px solid #b91c1c',
-                        padding: '16px',
-                        borderRadius: '8px',
-                    },
-                });
-                return;
-            }
+        async function handleVerifyAndSignIn() {
+            if (token && !email) {
+                // Если есть token, вызываем API для подтверждения
+                try {
+                    setIsVerifying(true);
+                    const response = await fetch(`/api/auth/verify-email?token=${token}`, {
+                        method: 'GET',
+                    });
 
-            try {
-                // Выполняем вход через CredentialsProvider
-                const response = await signIn('credentials', {
-                    email,
-                    password: '', // Пустой пароль, так как проверка пароля обходится
-                    redirect: false,
-                });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || 'Ошибка подтверждения email');
+                    }
 
-                console.log('SignIn response:', response); // Логирование для отладки
-
-                if (response?.ok) {
-                    toast.success('Email подтвержден и вход выполнен!', {
-                        icon: '✅',
-                        duration: 3000,
+                    // Получаем email из редиректа
+                    const redirectUrl = new URL(response.url);
+                    const userEmail = redirectUrl.searchParams.get('email');
+                    if (userEmail) {
+                        router.push(`/verify-email?email=${encodeURIComponent(userEmail)}`);
+                    } else {
+                        throw new Error('Email не получен из ответа API');
+                    }
+                } catch (error) {
+                    console.error('Error [VERIFY_EMAIL_TOKEN]', error);
+                    toast.error(error.message || 'Ошибка при подтверждении email', {
+                        icon: '❌',
+                        duration: 5000,
                         style: {
-                            background: '#d1fae5',
-                            color: '#065f46',
-                            border: '1px solid #065f46',
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            border: '1px solid #b91c1c',
                             padding: '16px',
                             borderRadius: '8px',
                         },
                     });
-                    setTimeout(() => router.push('/'), 3000); // Перенаправление через 3 секунды
-                } else {
-                    toast.error(response?.error || 'Ошибка авторизации', {
+                    if (error.message === 'Токен истек') {
+                        setTimeout(() => router.push('/resend-verification'), 3000);
+                    }
+                } finally {
+                    setIsVerifying(false);
+                }
+            } else if (email) {
+                // Если есть email, выполняем вход
+                try {
+                    const response = await signIn('credentials', {
+                        email,
+                        password: '',
+                        isVerifyEmail: 'true', // Добавляем флаг
+                        redirect: false,
+                    });
+
+                    console.log('SignIn response:', response); // Логирование для отладки
+
+                    if (response?.ok) {
+                        toast.success('Email подтвержден и вход выполнен!', {
+                            icon: '✅',
+                            duration: 3000,
+                            style: {
+                                background: '#d1fae5',
+                                color: '#065f46',
+                                border: '1px solid #065f46',
+                                padding: '16px',
+                                borderRadius: '8px',
+                            },
+                        });
+                        setTimeout(() => router.push('/'), 3000);
+                    } else {
+                        toast.error(response?.error || 'Ошибка авторизации', {
+                            icon: '❌',
+                            duration: 5000,
+                            style: {
+                                background: '#fee2e2',
+                                color: '#b91c1c',
+                                border: '1px solid #b91c1c',
+                                padding: '16px',
+                                borderRadius: '8px',
+                            },
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error [VERIFY_EMAIL_SIGNIN]', error);
+                    toast.error('Ошибка сервера', {
                         icon: '❌',
-                        duration: 3000,
+                        duration: 5000,
                         style: {
                             background: '#fee2e2',
                             color: '#b91c1c',
@@ -62,11 +106,10 @@ export default function VerifyEmailPage() {
                         },
                     });
                 }
-            } catch (error) {
-                console.error('Error [VERIFY_EMAIL]', error);
-                toast.error('Ошибка сервера', {
+            } else {
+                toast.error('Неверные параметры запроса', {
                     icon: '❌',
-                    duration: 3000,
+                    duration: 5000,
                     style: {
                         background: '#fee2e2',
                         color: '#b91c1c',
@@ -78,13 +121,18 @@ export default function VerifyEmailPage() {
             }
         }
 
-        handleSignIn();
-    }, [email, router]);
+        handleVerifyAndSignIn();
+    }, [email, token, router]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen">
             <h1 className="text-2xl font-bold">Подтверждение email</h1>
-            <p className="text-gray-500">Пожалуйста, подождите, мы подтверждаем ваш email и выполняем вход...</p>
+            <p className="text-gray-500 flex items-center gap-2">
+                {isVerifying
+                    ? 'Пожалуйста, подождите, мы подтверждаем ваш email...'
+                    : 'Пожалуйста, подождите, мы выполняем вход...'}
+                <Loader2 className="w-6 h-6 animate-spin" />
+            </p>
         </div>
     );
 }

@@ -10,10 +10,6 @@ const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
-    server: {
-        host: '0.0.0.0', // Явно указываем хост
-        port: 3000,
-    },
 };
 
 export default nextConfig;

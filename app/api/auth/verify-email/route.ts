@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
             verificationToken: user.verificationToken,
             verificationTokenExpires: user.verificationTokenExpires,
             emailVerified: user.emailVerified,
-        } : null); // Логирование для отладки
+        } : null);
 
         if (!user) {
             return NextResponse.json({ message: 'Неверный токен' }, { status: 404 });
@@ -34,13 +34,12 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: 'Токен истек' }, { status: 400 });
         }
 
-        // Подтверждаем email
         const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
                 emailVerified: true,
                 verificationToken: null,
-                verificationTokenExpires: null, // Сбрасываем срок действия
+                verificationTokenExpires: null,
             },
         });
 
@@ -48,9 +47,8 @@ export async function GET(req: NextRequest) {
             id: updatedUser.id,
             email: updatedUser.email,
             emailVerified: updatedUser.emailVerified,
-        }); // Логирование для отладки
+        });
 
-        // Перенаправляем на клиентскую страницу для входа
         return NextResponse.redirect(new URL(`/verify-email?email=${encodeURIComponent(user.email)}`, req.url));
     } catch (error) {
         console.error('Ошибка при подтверждении email:', error);
