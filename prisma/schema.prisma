@@ -11,20 +11,22 @@ datasource db {
 }
 
 model User {
-  id          Int              @id @default(autoincrement())
-  fullName    String
-  email       String           @unique
-  provider    String?
-  providerId  String?
-  password    String
-  role        UserRole         @default(USER)
-  img         String?
-  resetToken  String?
-  points      Float            @default(1000)
-  betsCreated Bet[]            @relation("BetsCreated")
-  betsPlaced  BetParticipant[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id                Int              @id @default(autoincrement())
+  fullName          String
+  email             String           @unique
+  provider          String?
+  providerId        String?
+  password          String
+  role              UserRole         @default(USER)
+  img               String?
+  resetToken        String?
+  verificationToken String?          // Токен для подтверждения email
+  emailVerified     Boolean          @default(false) // Статус подтверждения email
+  points            Float            @default(1000)
+  betsCreated       Bet[]            @relation("BetsCreated")
+  betsPlaced        BetParticipant[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 }
 
 model Bet {
