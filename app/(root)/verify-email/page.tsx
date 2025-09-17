@@ -11,9 +11,12 @@ export default function VerifyEmailPage() {
     const email = searchParams.get('email');
     const token = searchParams.get('token');
     const [isVerifying, setIsVerifying] = useState(!!token);
+    const [hasSignedIn, setHasSignedIn] = useState(false); // Защита от повторного signIn
 
     useEffect(() => {
         async function handleVerifyAndSignIn() {
+            if (hasSignedIn) return; // Предотвращаем повторный вызов
+
             if (token && !email) {
                 try {
                     setIsVerifying(true);
@@ -35,7 +38,6 @@ export default function VerifyEmailPage() {
                     }
                 } catch (error) {
                     console.error('Error [VERIFY_EMAIL_TOKEN]', error);
-                    // Приводим error к типу Error или используем безопасную проверку
                     const errorMessage = error instanceof Error ? error.message : 'Ошибка при подтверждении email';
                     toast.error(errorMessage, {
                         icon: '❌',
@@ -54,8 +56,9 @@ export default function VerifyEmailPage() {
                 } finally {
                     setIsVerifying(false);
                 }
-            } else if (email) {
+            } else if (email && !hasSignedIn) {
                 try {
+                    setHasSignedIn(true); // Устанавливаем флаг перед signIn
                     const response = await signIn('credentials', {
                         email,
                         password: '',
@@ -67,6 +70,7 @@ export default function VerifyEmailPage() {
 
                     if (response?.ok) {
                         toast.success('Email подтвержден и вход выполнен!', {
+                            id: 'verify-email-success', // Уникальный ID для предотвращения дублирования
                             icon: '✅',
                             duration: 3000,
                             style: {
@@ -90,6 +94,7 @@ export default function VerifyEmailPage() {
                                 borderRadius: '8px',
                             },
                         });
+                        setHasSignedIn(false); // Сбрасываем флаг при ошибке
                     }
                 } catch (error) {
                     console.error('Error [VERIFY_EMAIL_SIGNIN]', error);
@@ -105,6 +110,7 @@ export default function VerifyEmailPage() {
                             borderRadius: '8px',
                         },
                     });
+                    setHasSignedIn(false); // Сбрасываем флаг при ошибке
                 }
             } else {
                 toast.error('Неверные параметры запроса', {
@@ -122,7 +128,7 @@ export default function VerifyEmailPage() {
         }
 
         handleVerifyAndSignIn();
-    }, [email, token, router]);
+    }, [email, token, router, hasSignedIn]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen">
