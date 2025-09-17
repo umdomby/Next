@@ -40,8 +40,13 @@ export async function updateUserInfo(body: Prisma.UserUpdateInput) {
     }
 } // Функция для обновления информации о пользователе
 
-// Импортируем crypto через require для серверного окружения
-let crypto;
+// Определяем тип для crypto
+interface Crypto {
+    randomBytes: (size: number) => Buffer;
+}
+
+// Объявляем crypto с типом Crypto | undefined
+let crypto: Crypto | undefined;
 try {
     crypto = require('crypto');
 } catch (err) {
@@ -61,7 +66,7 @@ export async function registerUser(body: Prisma.UserCreateInput) {
         }
 
         // Генерация токена для подтверждения email
-        let verificationToken;
+        let verificationToken: string;
         if (crypto && crypto.randomBytes) {
             verificationToken = crypto.randomBytes(32).toString('hex');
         } else {

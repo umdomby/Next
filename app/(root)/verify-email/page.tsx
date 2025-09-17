@@ -15,7 +15,6 @@ export default function VerifyEmailPage() {
     useEffect(() => {
         async function handleVerifyAndSignIn() {
             if (token && !email) {
-                // Если есть token, вызываем API для подтверждения
                 try {
                     setIsVerifying(true);
                     const response = await fetch(`/api/auth/verify-email?token=${token}`, {
@@ -27,7 +26,6 @@ export default function VerifyEmailPage() {
                         throw new Error(errorData.message || 'Ошибка подтверждения email');
                     }
 
-                    // Получаем email из редиректа
                     const redirectUrl = new URL(response.url);
                     const userEmail = redirectUrl.searchParams.get('email');
                     if (userEmail) {
@@ -37,7 +35,9 @@ export default function VerifyEmailPage() {
                     }
                 } catch (error) {
                     console.error('Error [VERIFY_EMAIL_TOKEN]', error);
-                    toast.error(error.message || 'Ошибка при подтверждении email', {
+                    // Приводим error к типу Error или используем безопасную проверку
+                    const errorMessage = error instanceof Error ? error.message : 'Ошибка при подтверждении email';
+                    toast.error(errorMessage, {
                         icon: '❌',
                         duration: 5000,
                         style: {
@@ -48,23 +48,22 @@ export default function VerifyEmailPage() {
                             borderRadius: '8px',
                         },
                     });
-                    if (error.message === 'Токен истек') {
+                    if (errorMessage === 'Токен истек') {
                         setTimeout(() => router.push('/resend-verification'), 3000);
                     }
                 } finally {
                     setIsVerifying(false);
                 }
             } else if (email) {
-                // Если есть email, выполняем вход
                 try {
                     const response = await signIn('credentials', {
                         email,
                         password: '',
-                        isVerifyEmail: 'true', // Добавляем флаг
+                        isVerifyEmail: 'true',
                         redirect: false,
                     });
 
-                    console.log('SignIn response:', response); // Логирование для отладки
+                    console.log('SignIn response:', response);
 
                     if (response?.ok) {
                         toast.success('Email подтвержден и вход выполнен!', {
@@ -94,7 +93,8 @@ export default function VerifyEmailPage() {
                     }
                 } catch (error) {
                     console.error('Error [VERIFY_EMAIL_SIGNIN]', error);
-                    toast.error('Ошибка сервера', {
+                    const errorMessage = error instanceof Error ? error.message : 'Ошибка сервера';
+                    toast.error(errorMessage, {
                         icon: '❌',
                         duration: 5000,
                         style: {
