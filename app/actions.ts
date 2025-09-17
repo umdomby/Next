@@ -5,37 +5,41 @@ import {Prisma} from '@prisma/client';
 import {hashSync} from 'bcrypt';
 import * as z from 'zod'
 import { revalidatePath } from 'next/cache';
-import { BetParticipant, PlayerChoice } from '@prisma/client'
 
 
 export async function updateUserInfo(body: Prisma.UserUpdateInput) {
-  try {
-    const currentUser = await getUserSession();
+    try {
+        const currentUser = await getUserSession();
 
-    if (!currentUser) {
-      throw new Error('Пользователь не найден');
+        if (!currentUser) {
+            throw new Error('Пользователь не найден');
+        }
+
+        const findUser = await prisma.user.findFirst({
+            where: {
+                id: Number(currentUser.id),
+            },
+        });
+
+        if (!findUser) {
+            throw new Error('Пользователь не найден в базе данных');
+        }
+
+        await prisma.user.update({
+            where: {
+                id: Number(currentUser.id),
+            },
+            data: {
+                fullName: body.fullName,
+                password: body.password ? hashSync(body.password as string, 10) : findUser.password,
+            },
+        });
+        revalidatePath('/profile');
+    } catch (err) {
+        throw err;
     }
+} // Функция для обновления информации о пользователе
 
-    const findUser = await prisma.user.findFirst({
-      where: {
-        id: Number(currentUser.id),
-      },
-    });
-
-    await prisma.user.update({
-      where: {
-        id: Number(currentUser.id),
-      },
-      data: {
-        fullName: body.fullName,
-        email: body.email,
-        password: body.password ? hashSync(body.password as string, 10) : findUser?.password,
-      },
-    });
-  } catch (err) {
-    throw err;
-  }
-}
 export async function registerUser(body: Prisma.UserCreateInput) {
   try {
     const user = await prisma.user.findFirst({

@@ -19,6 +19,7 @@ model User {
   password    String
   role        UserRole         @default(USER)
   img         String?
+  resetToken  String?
   points      Float            @default(1000)
   betsCreated Bet[]            @relation("BetsCreated")
   betsPlaced  BetParticipant[]
